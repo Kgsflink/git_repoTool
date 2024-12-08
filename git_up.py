@@ -4,6 +4,7 @@ import base64
 import hashlib
 import argparse
 import json
+import time
 from termcolor import colored  # For colorful console output
 
 # ========================== Helper Functions ==========================
@@ -119,7 +120,7 @@ def upload_files_to_repo(repo_full_name, local_directory, api_key, ignore_list):
 
             try:
                 # Check if the corresponding folder exists on GitHub, create if not
-                folder_path = os.path.dirname(relative_path)
+                print(f"Processing file: {relative_path}")
                 sha, remote_content = get_file_sha(repo_full_name, relative_path, api_key)
 
                 with open(file_path, 'rb') as file:
@@ -134,11 +135,26 @@ def upload_files_to_repo(repo_full_name, local_directory, api_key, ignore_list):
                 if sha:
                     data['sha'] = sha
 
-                response = requests.put(url, json=data, headers=headers)
-                if response.status_code in [200, 201]:
-                    print(colored(f"Successfully uploaded {relative_path}", 'green'))
-                else:
-                    print(colored(f"Failed to upload {relative_path}: {response.json()}", 'red'))
+                attempt = 0
+                success = False
+                while attempt < 3 and not success:
+                    try:
+                        response = requests.put(url, json=data, headers=headers)
+                        if response.status_code in [200, 201]:
+                            print(colored(f"Successfully uploaded {relative_path}", 'green'))
+                            success = True
+                        else:
+                            print(colored(f"Failed to upload {relative_path}: {response.json()}", 'red'))
+                            attempt += 1
+                            time.sleep(5)  # Wait before retrying
+                    except requests.exceptions.RequestException as e:
+                        print(f"Network error during upload of {relative_path}: {e}")
+                        attempt += 1
+                        time.sleep(5)  # Retry after a short delay
+
+                if not success:
+                    print(colored(f"Failed to upload {relative_path} after multiple attempts.", 'red'))
+
             except Exception as e:
                 print(f"Error processing {file_path}: {e}")
 
