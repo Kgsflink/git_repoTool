@@ -5,7 +5,6 @@ import hashlib
 import argparse
 import json
 import time
-from termcolor import colored  # For colorful console output
 
 # ========================== Helper Functions ==========================
 
@@ -13,11 +12,11 @@ def show_banner():
     """Displays the welcome banner."""
     banner = """
     ===========================================
-               KGSFLINK 😊😊
-          Follow on Instagram: gopalsahani666
+               GITHUB UPLOAD TOOL
+          Professional Automation Script
     ===========================================
     """
-    print(colored(banner, 'green'))
+    print(banner)
 
 def save_token(token):
     """Save the API token to a config file."""
@@ -32,7 +31,7 @@ def load_token():
                 config = json.load(config_file)
                 return config.get('github_token', None)
     except (json.JSONDecodeError, KeyError) as e:
-        print(colored("Error reading token from config.json. Resetting the file.", 'red'))
+        print("Error reading token from config.json. Resetting the file.")
         save_token("")
     return None
 
@@ -69,12 +68,12 @@ def create_github_repo(repo_name, api_key):
         data = {'name': repo_name, 'private': False}
         response = requests.post(url, json=data, headers=headers)
         if response.status_code == 201:
-            print(colored(f"Repository '{repo_name}' created successfully.", 'green'))
+            print(f"Repository '{repo_name}' created successfully.")
             return response.json().get('full_name')
         else:
-            print(colored(f"Failed to create repository: {response.json()}", 'red'))
+            print(f"Failed to create repository: {response.json()}")
     except requests.exceptions.RequestException as e:
-        print(colored(f"Error creating repository: {e}", 'red'))
+        print(f"Error creating repository: {e}")
     return None
 
 def get_file_sha(repo_full_name, file_path, api_key):
@@ -113,13 +112,11 @@ def upload_files_to_repo(repo_full_name, local_directory, api_key, ignore_list):
             file_path = os.path.join(root, filename)
             relative_path = os.path.relpath(file_path, local_directory)
 
-            # Skip ignored files/folders
             if any(ignored in relative_path for ignored in ignore_list):
-                print(colored(f"Skipping ignored file: {relative_path}", 'yellow'))
+                print(f"Skipping ignored file: {relative_path}")
                 continue
 
             try:
-                # Check if the corresponding folder exists on GitHub, create if not
                 print(f"Processing file: {relative_path}")
                 sha, remote_content = get_file_sha(repo_full_name, relative_path, api_key)
 
@@ -127,7 +124,7 @@ def upload_files_to_repo(repo_full_name, local_directory, api_key, ignore_list):
                     content = base64.b64encode(file.read()).decode('utf-8')
 
                 if remote_content and remote_content == base64.b64decode(content):
-                    print(colored(f"No changes in {relative_path}. Skipping.", 'yellow'))
+                    print(f"No changes in {relative_path}. Skipping.")
                     continue
 
                 url = url_template.format(path=relative_path)
@@ -141,19 +138,19 @@ def upload_files_to_repo(repo_full_name, local_directory, api_key, ignore_list):
                     try:
                         response = requests.put(url, json=data, headers=headers)
                         if response.status_code in [200, 201]:
-                            print(colored(f"Successfully uploaded {relative_path}", 'green'))
+                            print(f"Successfully uploaded {relative_path}")
                             success = True
                         else:
-                            print(colored(f"Failed to upload {relative_path}: {response.json()}", 'red'))
+                            print(f"Failed to upload {relative_path}: {response.json()}")
                             attempt += 1
-                            time.sleep(5)  # Wait before retrying
+                            time.sleep(5)
                     except requests.exceptions.RequestException as e:
                         print(f"Network error during upload of {relative_path}: {e}")
                         attempt += 1
-                        time.sleep(5)  # Retry after a short delay
+                        time.sleep(5)
 
                 if not success:
-                    print(colored(f"Failed to upload {relative_path} after multiple attempts.", 'red'))
+                    print(f"Failed to upload {relative_path} after multiple attempts.")
 
             except Exception as e:
                 print(f"Error processing {file_path}: {e}")
@@ -170,36 +167,36 @@ def main():
 
     if args.api:
         save_token(args.api)
-        print(colored("GitHub API token has been saved successfully!", 'green'))
+        print("GitHub API token has been saved successfully!")
 
     api_key = load_token()
     if not api_key:
-        print(colored("GitHub API token is required. Please set it using -A flag.", 'red'))
+        print("GitHub API token is required. Please set it using -A flag.")
         return
 
     if not args.path:
-        print(colored("Path to the local directory is required. Use -p to specify the path.", 'red'))
+        print("Path to the local directory is required. Use -p to specify the path.")
         return
 
     repo_name = input("Enter the name of the repository to create or upload to: ").strip()
     if not repo_name:
-        print(colored("Repository name is required.", 'red'))
+        print("Repository name is required.")
         return
 
     local_directory = args.path
     if not os.path.exists(local_directory):
-        print(colored("Invalid path provided.", 'red'))
+        print("Invalid path provided.")
         return
 
     ignore_list = args.ignore if args.ignore else []
 
     if check_repo_exists(repo_name, api_key):
         repo_full_name = f"{get_github_username(api_key)}/{repo_name}"
-        print(colored(f"Repository '{repo_name}' already exists.", 'yellow'))
+        print(f"Repository '{repo_name}' already exists.")
     else:
         repo_full_name = create_github_repo(repo_name, api_key)
         if not repo_full_name:
-            print(colored("Exiting script.", 'red'))
+            print("Exiting script.")
             return
 
     upload_files_to_repo(repo_full_name, local_directory, api_key, ignore_list)
