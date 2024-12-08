@@ -10,7 +10,7 @@ def show_banner():
     banner = """
     ===========================================
                KGSFLINK 😊😊
-          Follow on Instagram: gooalsahani666
+          Follow on Instagram: gopalsahani666
     ===========================================
     """
     print(banner)
